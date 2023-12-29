@@ -55,7 +55,7 @@ os.WriteFile("/path/to/extension.crx", out.CRXBytes, 0644)
 - `Chrome` is the default packer **and requires** the 
 `chrome` or `chromium` binary to be installed
 - `GoCRX3` is a pure go implementation of the crx3 
-format; however, **may be unreliable** (see the 
+format :smile: however, **may be unreliable** :worried: (see the 
 [go-crx3](https://github.com/mmadfox/go-crx3) repo for 
 more)
 
