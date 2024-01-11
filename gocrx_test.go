@@ -11,12 +11,12 @@ import (
 func TestPack(t *testing.T) {
 	t.Parallel()
 
-	inp := gocrx.Input{
+	inp := gocrx.PackInput{
 		Packer:    gocrx.Chrome,
 		Directory: "tmp/test",
 	}
 
-	opt := gocrx.Options{
+	opt := gocrx.PackOptions{
 		Sign: true,
 	}
 
@@ -39,13 +39,13 @@ func TestPack(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	inp = gocrx.Input{
+	inp = gocrx.PackInput{
 		Packer:    gocrx.Chrome,
 		Directory: "tmp/test",
 		PEMFile:   "tmp/test.pem",
 	}
 
-	opt = gocrx.Options{}
+	opt = gocrx.PackOptions{}
 
 	out, err = gocrx.Pack(context.Background(), inp, opt)
 
@@ -56,13 +56,13 @@ func TestPack(t *testing.T) {
 
 	ver := "420"
 
-	inp = gocrx.Input{
+	inp = gocrx.PackInput{
 		Packer:    gocrx.Chrome,
 		Directory: "tmp/test",
 		PEMFile:   "tmp/test.pem",
 	}
 
-	opt = gocrx.Options{
+	opt = gocrx.PackOptions{
 		Version: ver,
 	}
 
@@ -77,13 +77,13 @@ func TestPack(t *testing.T) {
 	assert.Equal(t, pem, out.PEMBytes)
 	//assert.NotEqual(t, crx, out.CRXBytes) //<< @todo wtf?
 
-	inp = gocrx.Input{
+	inp = gocrx.PackInput{
 		Packer:    gocrx.GoCRX3,
 		Directory: "tmp/test",
 		PEMFile:   "tmp/test.pem",
 	}
 
-	opt = gocrx.Options{}
+	opt = gocrx.PackOptions{}
 
 	out, err = gocrx.Pack(context.Background(), inp, opt)
 
@@ -94,13 +94,13 @@ func TestPack(t *testing.T) {
 
 	ver = "69"
 
-	inp = gocrx.Input{
+	inp = gocrx.PackInput{
 		Packer:    gocrx.GoCRX3,
 		Directory: "tmp/test",
 		PEMFile:   "tmp/test.pem",
 	}
 
-	opt = gocrx.Options{
+	opt = gocrx.PackOptions{
 		Version: ver,
 	}
 
