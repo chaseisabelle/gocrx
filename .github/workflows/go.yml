@@ -1,4 +1,4 @@
-name: test
+name: go
 
 on:
   push:
@@ -6,13 +6,25 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: setup
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-    - name: test
-      run: make test
+      - uses: actions/checkout@v3
+      - name: lint
+        run: make lint
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: test
+        run: make test
+      - name: cover
+        run: make cover
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: vet
+        run: make vet
+      - name: trufflehog
+        run: make trufflehog

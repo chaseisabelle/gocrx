@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  vetter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: go
+    image: chaseisabelle/gocrx:local
+    container_name: chaseisabelle-gocrx-vetter
+    working_dir: /workdir
+    command: go vet -v ./...
+    volumes:
+      - .:/workdir
+  tester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: go
+    image: chaseisabelle/gocrx:local
+    container_name: chaseisabelle-gocrx-tester
+    working_dir: /workdir
+    command: go test -v --cover --coverprofile=coverage.out ./...
+    volumes:
+      - .:/workdir
+  coverer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: go
+    image: chaseisabelle/gocrx:local
+    container_name: chaseisabelle-gocrx-coverer
+    working_dir: /workdir
+    command: go tool cover --func=coverage.out
+    volumes:
+      - .:/workdir
+  linter:
+    image: golangci/golangci-lint
+    container_name: chaseisabelle-gocrx-linter
+    working_dir: /workdir
+    command: golangci-lint run -v --timeout=10m
+    volumes:
+      - .:/workdir
+  trufflehog:
+    image: chaseisabelle/gocrx:local
+    container_name: chaseisabelle-gocrx-trufflehog
+    working_dir: /workdir
+    command: filesystem .
+    volumes:
+      - .:/workdir

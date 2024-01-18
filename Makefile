@@ -1,3 +1,8 @@
+.PHONY: nuke
+nuke:
+	rm -rf tmp/* || true
+	docker rmi chaseisabelle/gocrx:local || true
+
 .PHONY: data
 data:
 	mkdir tmp || true
@@ -6,11 +11,28 @@ data:
 	rm -rf tmp/test
 	mkdir -p tmp/test
 	cp -R tmp/chrome-extensions-samples/functional-samples/tutorial.hello-world/* tmp/test
-	rm -rf tmp/chrome-extensions-samples || true
+
+.PHONY: run
+run:
+	docker compose run --rm ${service} ${command}
+
+.PHONY: vet
+vet:
+	make run service=vetter
 
 .PHONY: test
 test:
 	make data
-	docker build -t gocrx .
-	docker run --rm -w /workdir -v $(PWD):/workdir gocrx go test -v ./...
+	make run service=tester
 
+.PHONY: cover
+cover:
+	make run service=coverer
+
+.PHONY: lint
+lint:
+	make run service=linter
+
+.PHONY: trufflehog
+trufflehog:
+	make run service=trufflehog
