@@ -29,8 +29,8 @@ opt := gocrx.Options{
 
 out, err := gocrx.Pack(context.Background(), inp, opt)
 
-os.WriteFile("/path/to/extension.crx", out.CRXBytes, 0644)
-os.WriteFile("/path/to/extension.pem", out.PEMBytes, 0644)
+os.WriteFile("/path/to/extension.crx", out.CRX, 0644)
+os.WriteFile("/path/to/extension.pem", out.PEM, 0644)
 ```
 
 ```go
@@ -39,14 +39,14 @@ os.WriteFile("/path/to/extension.pem", out.PEMBytes, 0644)
 inp := gocrx.Input{
     Packer:    gocrx.Chrome, 
     Directory: "/path/to/extension",
-    PEMFile:   "/path/to/extension.pem",
+    PEM:       "/path/to/extension.pem",
 }
 
 opt := gocrx.Options{}
 
 out, err := gocrx.Pack(context.Background(), inp, opt)
 
-os.WriteFile("/path/to/extension.crx", out.CRXBytes, 0644)
+os.WriteFile("/path/to/extension.crx", out.CRX, 0644)
 ```
 
 ---
