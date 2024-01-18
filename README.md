@@ -18,12 +18,12 @@ import "github.com/chaseisabelle/gocrx"
 ```go
 // pack a new crx and generate a pem
 
-inp := gocrx.Input{
+inp := &gocrx.Input{
     Packer:    gocrx.Chrome, 
     Directory: "/path/to/extension",
 }
 
-opt := gocrx.Options{
+opt := &gocrx.Options{
     Sign: true,
 }
 
@@ -36,13 +36,13 @@ os.WriteFile("/path/to/extension.pem", out.PEM, 0644)
 ```go
 // pack a crx with an existing pem
 
-inp := gocrx.Input{
+inp := &gocrx.Input{
     Packer:    gocrx.Chrome, 
     Directory: "/path/to/extension",
     PEM:       "/path/to/extension.pem",
 }
 
-opt := gocrx.Options{}
+opt := &gocrx.Options{}
 
 out, err := gocrx.Pack(context.Background(), inp, opt)
 
