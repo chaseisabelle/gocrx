@@ -68,7 +68,7 @@ os.WriteFile("/path/to/extension.crx", out.CRX, 0644)
 - it is not very efficient/performant
 - it's intent was to be used for ci/cd
 - the go-crx3 packer is kinda/sorta experimental
-- the go-crx3 packer cannot sign crx files (yet)
+- ~~the go-crx3 packer cannot sign crx files (yet)~~
 
 ---
 ## shout-outs
