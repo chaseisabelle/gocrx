@@ -3,6 +3,8 @@ module github.com/chaseisabelle/gocrx
 go 1.21.4
 
 require (
+	github.com/bitly/go-simplejson v0.5.1
+	github.com/google/uuid v1.5.0
 	github.com/mediabuyerbot/go-crx3 v1.4.1
 	github.com/otiai10/copy v1.14.0
 	github.com/stretchr/testify v1.8.4
