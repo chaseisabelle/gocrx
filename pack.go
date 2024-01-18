@@ -2,14 +2,12 @@ package gocrx
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/bitly/go-simplejson"
 	"github.com/mediabuyerbot/go-crx3"
 	copier "github.com/otiai10/copy"
 	"github.com/zserge/lorca"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,8 +17,8 @@ import (
 // Packer is the type of packer to use.
 type Packer string
 
-// PackInput is the input to the Pack function.
-type PackInput struct {
+// Input is the input to the Pack function.
+type Input struct {
 	// Packer is the type of packer to use.
 	Packer Packer
 	// Directory is the directory of the extension.
@@ -33,8 +31,8 @@ type PackInput struct {
 	PEM string
 }
 
-// PackOptions is the options for the Pack function.
-type PackOptions struct {
+// Options is the options for the Pack function.
+type Options struct {
 	// OnError is the non-critical errors handler.
 	OnError func(context.Context, error)
 	// Sign is to sign/re-sign the crx (generates new key+pem).
@@ -49,10 +47,10 @@ type PackOptions struct {
 	Version string
 }
 
-// PackOutput is the output of the Pack function.
-type PackOutput struct {
+// Output is the output of the Pack function.
+type Output struct {
 	// Manifest is the manifest data of the packed extension.
-	Manifest map[string]any
+	Manifest *simplejson.Json
 	// PEM is the pem key of the packed extension.
 	PEM string
 	// CRX is the crx binary of the packed extension.
@@ -67,8 +65,9 @@ const (
 )
 
 // Pack packs an extension.
-func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, error) {
-	var out PackOutput
+func Pack(ctx context.Context, inp Input, opt Options) (Output, error) {
+	// initialize some required variables
+	var out Output
 
 	if inp.Packer == "" {
 		inp.Packer = Chrome
@@ -78,150 +77,178 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 		opt.OnError = func(context.Context, error) {}
 	}
 
+	// create temporary working directory
 	dir, err := os.MkdirTemp("", "gocrx-*")
 
 	if err != nil {
-		return out, fmt.Errorf("failed to create temp dir: %w", err)
+		return out, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
+	// delete temporary working directory and its contents
 	defer func() {
 		err := os.RemoveAll(dir)
 
 		if err != nil {
-			opt.OnError(ctx, fmt.Errorf("failed to remove workdir: %w", err))
+			opt.OnError(ctx, fmt.Errorf("failed to remove temporary directory: %w", err))
 		}
 	}()
 
+	// create temporary working directory paths
+	tbf := filepath.Join(dir, "bin")
+	txd := filepath.Join(dir, "dir")
+	tmf := filepath.Join(txd, "manifest.json")
+	tpf := filepath.Join(dir, "pem")
+	tcf := filepath.Join(dir, "crx")
+
+	// check if the user has supplied a binary input
 	if len(inp.Binary) > 0 {
 		if inp.File != "" {
-			return out, fmt.Errorf("cannot use both file and binary")
+			return out, fmt.Errorf("cannot supply both file and binary inputs")
 		}
 
-		inp.File = filepath.Join(dir, "bin")
+		inp.File = tbf
 
 		err = writeBytesToFile(inp.File, inp.Binary)
 
 		if err != nil {
-			return out, fmt.Errorf("failed to write binary to file: %w", err)
+			return out, fmt.Errorf("failed to write binary to temporary file: %w", err)
 		}
 	}
 
+	// check if the user has supplied a file input
 	if inp.File != "" {
 		if inp.Directory != "" {
-			return out, fmt.Errorf("cannot use both directory and file/binary")
+			return out, fmt.Errorf("cannot supply both directory and file/binary inputs")
 		}
 
-		inp.Directory = filepath.Join(dir, "ext")
+		inp.Directory = txd
 
-		ext := crx3.Extension(inp.File)
+		tmp := crx3.Extension(inp.File)
 
 		switch {
-		case ext.IsZip():
-			err = ext.Unzip()
-		case ext.IsCRX3():
-			err = ext.Unpack()
+		case tmp.IsZip():
+			err = os.Mkdir(inp.Directory, 0755)
+
+			if err != nil {
+				return out, fmt.Errorf("failed to create directory: %w", err)
+			}
+
+			err = crx3.UnzipTo(inp.Directory, inp.File)
+		case tmp.IsCRX3():
+			err = crx3.UnpackTo(inp.File, inp.Directory)
 		default:
 			err = fmt.Errorf("invalid file/binary")
 		}
 
 		if err != nil {
-			return out, fmt.Errorf("failed to extract file/binary to dir: %w", err)
+			return out, fmt.Errorf("failed to extract file/binary to directory: %w", err)
 		}
 
-		err = renameFile(inp.Directory[:len(inp.Directory)-4], dir)
+		inp.Directory = filepath.Join(inp.Directory, filepath.Base(inp.File))
+	}
+
+	// check if the user has supplied a directory input
+	if inp.Directory == "" {
+		return out, fmt.Errorf("failed to supply directory/file/binary input")
+	}
+
+	// if the directory input is not the temporary directory, copy it to the temporary directory
+	if inp.Directory != txd {
+		err = copier.Copy(inp.Directory, txd)
 
 		if err != nil {
-			return out, fmt.Errorf("failed to rename dir: %w", err)
+			return out, fmt.Errorf("failed to copy directory: %w", err)
+		}
+
+		inp.Directory = txd
+	}
+
+	// check if the user has supplied a pem input
+	if inp.PEM == "" {
+		if !opt.Sign {
+			return out, fmt.Errorf("pem input or sign option required")
+		}
+
+		npk, err := crx3.NewPrivateKey()
+
+		if err != nil {
+			return out, fmt.Errorf("failed to generate private key: %w", err)
+		}
+
+		inp.PEM = tpf
+
+		err = crx3.SavePrivateKey(inp.PEM, npk)
+
+		if err != nil {
+			return out, fmt.Errorf("failed to save private key: %w", err)
 		}
 	}
 
-	if inp.Directory == "" {
-		return out, fmt.Errorf("input dir/file/binary required")
-	}
-
-	ext := filepath.Join(dir, "ext")
-	err = copier.Copy(inp.Directory, ext)
+	_, err = os.Stat(inp.PEM)
 
 	if err != nil {
-		return out, fmt.Errorf("failed to copy dir: %w", err)
-	}
-
-	inp.Directory = ext
-
-	if inp.PEM != "" {
-		_, err = os.Stat(inp.PEM)
-
-		if errors.Is(err, fs.ErrNotExist) {
-			inp.PEM = filepath.Join(dir, "ext.pem")
-
-			err = writeBytesToFile(filepath.Join(dir, inp.PEM), []byte(inp.PEM))
-		}
+		err = writeBytesToFile(tpf, []byte(inp.PEM))
 
 		if err != nil {
-			return out, fmt.Errorf("failed to utilize pem input: %w", err)
+			return out, fmt.Errorf("failed to write temporary pem file: %w", err)
 		}
+
+		inp.PEM = tpf
 	}
 
-	if inp.PEM == "" && !opt.Sign {
-		return out, fmt.Errorf("input pem required or sign must be true")
-	}
-
-	if inp.PEM != "" && opt.Sign {
-		return out, fmt.Errorf("cannot use both pem and sign option")
-	}
-
-	crx := filepath.Join(dir, "ext.crx")
-
-	buf, err := os.ReadFile(filepath.Join(inp.Directory, "manifest.json"))
+	// read+parse the manifest file and apply the options
+	buf, err := os.ReadFile(tmf)
 
 	if err != nil {
 		return out, fmt.Errorf("failed to read manifest file: %w", err)
 	}
 
-	err = json.Unmarshal(buf, &out.Manifest)
+	out.Manifest, err = simplejson.NewJson(buf)
 
 	if err != nil {
-		return out, fmt.Errorf("failed to unmarshal manifest data: %w", err)
+		return out, fmt.Errorf("failed to parse manifest data: %w", err)
 	}
 
 	if opt.Sign {
-		delete(out.Manifest, "key")
+		out.Manifest.Del("key")
 	}
 
 	if opt.Name != "" {
-		out.Manifest["name"] = opt.Name
+		out.Manifest.Set("name", opt.Name)
 	}
 
 	if opt.ShortName != "" {
-		out.Manifest["short_name"] = opt.ShortName
+		out.Manifest.Set("short_name", opt.ShortName)
 	}
 
 	if opt.Description != "" {
-		out.Manifest["description"] = opt.Description
+		out.Manifest.Set("description", opt.Description)
 	}
 
 	if opt.Version != "" {
-		out.Manifest["version"] = opt.Version
+		out.Manifest.Set("version", opt.Version)
 	}
 
-	buf, err = json.MarshalIndent(out.Manifest, "", "  ")
+	// encode+write the manifest file
+	buf, err = out.Manifest.EncodePretty()
 
 	if err != nil {
-		return out, fmt.Errorf("failed to marshal manifest data: %w", err)
+		return out, fmt.Errorf("failed to encode manifest data: %w", err)
 	}
 
-	err = writeBytesToFile(filepath.Join(inp.Directory, "manifest.json"), buf)
+	err = writeBytesToFile(tmf, buf)
 
 	if err != nil {
 		return out, fmt.Errorf("failed to write manifest file: %w", err)
 	}
 
+	// pack the extension using the specified packer
 	switch inp.Packer {
 	case Chrome:
 		bin := lorca.LocateChrome()
 
 		if bin == "" {
-			return out, fmt.Errorf("failed to run chromium/chrome: failed to locate binary")
+			return out, fmt.Errorf("failed to locate chrome/chromium binary")
 		}
 
 		arg := []string{
@@ -232,7 +259,7 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 		if !opt.Sign {
 			arg = append(arg, fmt.Sprintf("--pack-extension-key=%s", inp.PEM))
 		} else {
-			inp.PEM = filepath.Join(dir, "ext.pem")
+			inp.PEM = tpf
 		}
 
 		cmd := exec.Command(bin, arg...)
@@ -252,7 +279,7 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 		err = cmd.Start()
 
 		if err != nil {
-			return out, fmt.Errorf("failed to run chromium/chrome: %w", err)
+			return out, fmt.Errorf("failed to run chromium/chrome '%s': %w", bin, err)
 		}
 
 		var lll string
@@ -284,38 +311,19 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 		err = cmd.Wait()
 
 		if err != nil {
-			return out, fmt.Errorf("failed to run chromium: %w: %s", err, lll)
+			return out, fmt.Errorf("failed to run chrome/chromium '%s': %w: %s", bin, err, lll)
 		}
 
-		err = renameFile(crx, filepath.Join(dir, "ext.crx"))
-
-		if err != nil {
-			return out, fmt.Errorf("failed to rename crx file: %w", err)
-		}
+		tcf = filepath.Join(dir, fmt.Sprintf("%s.crx", filepath.Base(txd)))
 	case GoCRX3:
-		if opt.Sign {
-			npk, err := crx3.NewPrivateKey()
-
-			if err != nil {
-				return out, fmt.Errorf("failed to generate private key: %w", err)
-			}
-
-			inp.PEM = filepath.Join(dir, "ext.pem")
-
-			err = crx3.SavePrivateKey(inp.PEM, npk)
-
-			if err != nil {
-				return out, fmt.Errorf("failed to save private key: %w", err)
-			}
-		}
-
 		key, err := crx3.LoadPrivateKey(inp.PEM)
 
 		if err != nil {
 			return out, fmt.Errorf("failed to load private key: %w", err)
 		}
 
-		err = crx3.Extension(inp.Directory).PackTo(crx, key)
+		tcf = fmt.Sprintf("%s.crx", tcf)
+		err = crx3.Extension(inp.Directory).PackTo(tcf, key)
 
 		if err != nil {
 			return out, fmt.Errorf("failed to pack extension: %w", err)
@@ -324,7 +332,8 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 		return out, fmt.Errorf("invalid packer '%s'", inp.Packer)
 	}
 
-	out.CRX, err = os.ReadFile(crx)
+	// read the crx file and pem file
+	out.CRX, err = os.ReadFile(tcf)
 
 	if err != nil {
 		return out, fmt.Errorf("failed to read crx file: %w", err)
@@ -338,21 +347,8 @@ func Pack(ctx context.Context, inp PackInput, opt PackOptions) (PackOutput, erro
 
 	out.PEM = string(buf)
 
+	// kthxbye
 	return out, nil
-}
-
-func renameFile(old string, new string) error {
-	if old == new {
-		return nil
-	}
-
-	err := os.Rename(old, new)
-
-	if err != nil {
-		return fmt.Errorf("failed to rename file: %w", err)
-	}
-
-	return nil
 }
 
 func writeBytesToFile(pth string, buf []byte) error {
