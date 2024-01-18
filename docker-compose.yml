@@ -42,7 +42,7 @@ services:
     volumes:
       - .:/workdir
   trufflehog:
-    image: chaseisabelle/gocrx:local
+    image: trufflesecurity/trufflehog
     container_name: chaseisabelle-gocrx-trufflehog
     working_dir: /workdir
     command: filesystem .
