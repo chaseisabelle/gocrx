@@ -27,12 +27,12 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	inp := gocrx.Input{
+	inp := &gocrx.Input{
 		Packer:    gocrx.Chrome,
 		Directory: "tmp/test",
 	}
 
-	opt := packOptions(t, gocrx.Options{
+	opt := packOptions(t, &gocrx.Options{
 		Sign: true,
 	})
 
@@ -61,13 +61,13 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer:    gocrx.Chrome,
 		Directory: "tmp/test",
 		PEM:       tpf,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc2, err := gocrx.Pack(ctx, inp, opt)
 
@@ -82,13 +82,13 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.Chrome,
 		Binary: tc1.CRX,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc3, err := gocrx.Pack(ctx, inp, opt)
 
@@ -115,13 +115,13 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.Chrome,
 		Binary: bin,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc4, err := gocrx.Pack(ctx, inp, opt)
 
@@ -136,13 +136,13 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.Chrome,
 		File:   tcf,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc5, err := gocrx.Pack(ctx, inp, opt)
 
@@ -157,13 +157,13 @@ func TestPack_ChromePacker_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.Chrome,
 		File:   tzf,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc6, err := gocrx.Pack(ctx, inp, opt)
 
@@ -194,12 +194,12 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 
 	ctx := context.Background()
 
-	inp := gocrx.Input{
+	inp := &gocrx.Input{
 		Packer:    gocrx.GoCRX3,
 		Directory: "tmp/test",
 	}
 
-	opt := packOptions(t, gocrx.Options{
+	opt := packOptions(t, &gocrx.Options{
 		Sign: true,
 	})
 
@@ -228,13 +228,13 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer:    gocrx.GoCRX3,
 		Directory: "tmp/test",
 		PEM:       tpf,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc2, err := gocrx.Pack(ctx, inp, opt)
 
@@ -249,13 +249,13 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.GoCRX3,
 		Binary: tc1.CRX,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc3, err := gocrx.Pack(ctx, inp, opt)
 
@@ -282,13 +282,13 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.GoCRX3,
 		Binary: bin,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc4, err := gocrx.Pack(ctx, inp, opt)
 
@@ -303,13 +303,13 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.GoCRX3,
 		File:   tcf,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc5, err := gocrx.Pack(ctx, inp, opt)
 
@@ -324,13 +324,13 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 		return
 	}
 
-	inp = gocrx.Input{
+	inp = &gocrx.Input{
 		Packer: gocrx.GoCRX3,
 		File:   tzf,
 		PEM:    tc1.PEM,
 	}
 
-	opt = packOptions(t, gocrx.Options{})
+	opt = packOptions(t, &gocrx.Options{})
 
 	tc6, err := gocrx.Pack(ctx, inp, opt)
 
@@ -346,7 +346,7 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 	}
 }
 
-func packOptions(t *testing.T, opt gocrx.Options) gocrx.Options {
+func packOptions(t *testing.T, opt *gocrx.Options) *gocrx.Options {
 	opt.OnError = func(_ context.Context, err error) {
 		assert.NoError(t, err)
 	}

@@ -65,9 +65,9 @@ const (
 )
 
 // Pack packs an extension.
-func Pack(ctx context.Context, inp Input, opt Options) (Output, error) {
+func Pack(ctx context.Context, inp *Input, opt *Options) (*Output, error) {
 	// initialize some required variables
-	var out Output
+	out := &Output{}
 
 	if inp.Packer == "" {
 		inp.Packer = Chrome
