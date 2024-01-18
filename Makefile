@@ -6,7 +6,7 @@ data:
 	rm -rf tmp/test
 	mkdir -p tmp/test
 	cp -R tmp/chrome-extensions-samples/functional-samples/tutorial.hello-world/* tmp/test
-	rm -rf tmp/chrome-extensions-samples
+	rm -rf tmp/chrome-extensions-samples || true
 
 .PHONY: test
 test:
