@@ -20,7 +20,7 @@ services:
     image: chaseisabelle/gocrx:local
     container_name: chaseisabelle-gocrx-tester
     working_dir: /workdir
-    command: go test -v --cover --coverprofile=coverage.out ./...
+    command: go test -v --cover --coverprofile=tmp/coverage.out ./...
     volumes:
       - .:/workdir
   coverer:
@@ -31,7 +31,7 @@ services:
     image: chaseisabelle/gocrx:local
     container_name: chaseisabelle-gocrx-coverer
     working_dir: /workdir
-    command: go tool cover --func=coverage.out
+    command: go tool cover --func=tmp/coverage.out
     volumes:
       - .:/workdir
   linter:
