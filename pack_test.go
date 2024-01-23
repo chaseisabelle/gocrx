@@ -346,6 +346,42 @@ func TestPack_GoCRX3Packer_Success(t *testing.T) {
 	}
 }
 
+func TestPack_ManifestPacker_Success(t *testing.T) {
+	t.Parallel()
+
+	dir, err := os.MkdirTemp("", "gocrx-test-*")
+
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	defer func() {
+		assert.NoError(t, os.RemoveAll(dir))
+	}()
+
+	ctx := context.Background()
+
+	inp := &gocrx.Input{
+		Packer:    gocrx.Manifest,
+		Directory: "tmp/test",
+	}
+
+	opt := packOptions(t, &gocrx.Options{})
+
+	tc1, err := gocrx.Pack(ctx, inp, opt)
+
+	switch {
+	case !assert.NoError(t, err):
+		fallthrough
+	case !assert.NotNil(t, tc1.Manifest):
+		fallthrough
+	case !assert.Empty(t, tc1.PEM):
+		fallthrough
+	case !assert.Empty(t, tc1.CRX):
+		return
+	}
+}
+
 func packOptions(t *testing.T, opt *gocrx.Options) *gocrx.Options {
 	opt.OnError = func(_ context.Context, err error) {
 		assert.NoError(t, err)

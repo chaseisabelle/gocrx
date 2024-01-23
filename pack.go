@@ -62,6 +62,8 @@ const (
 	Chrome Packer = "chrome"
 	// GoCRX3 uses pure go: https://github.com/mmadfox/go-crx3
 	GoCRX3 Packer = "gocrx3"
+	// Manifest is a no-op packer that just extracts the manifest.
+	Manifest Packer = "manifest"
 )
 
 // Pack packs an extension.
@@ -163,39 +165,6 @@ func Pack(ctx context.Context, inp *Input, opt *Options) (*Output, error) {
 		inp.Directory = txd
 	}
 
-	// check if the user has supplied a pem input
-	if inp.PEM == "" {
-		if !opt.Sign {
-			return out, fmt.Errorf("pem input or sign option required")
-		}
-
-		npk, err := crx3.NewPrivateKey()
-
-		if err != nil {
-			return out, fmt.Errorf("failed to generate private key: %w", err)
-		}
-
-		inp.PEM = tpf
-
-		err = crx3.SavePrivateKey(inp.PEM, npk)
-
-		if err != nil {
-			return out, fmt.Errorf("failed to save private key: %w", err)
-		}
-	}
-
-	_, err = os.Stat(inp.PEM)
-
-	if err != nil {
-		err = writeBytesToFile(tpf, []byte(inp.PEM))
-
-		if err != nil {
-			return out, fmt.Errorf("failed to write temporary pem file: %w", err)
-		}
-
-		inp.PEM = tpf
-	}
-
 	// read+parse the manifest file and apply the options
 	buf, err := os.ReadFile(tmf)
 
@@ -207,6 +176,10 @@ func Pack(ctx context.Context, inp *Input, opt *Options) (*Output, error) {
 
 	if err != nil {
 		return out, fmt.Errorf("failed to parse manifest data: %w", err)
+	}
+
+	if inp.Packer == Manifest {
+		return out, nil
 	}
 
 	if opt.Sign {
@@ -240,6 +213,39 @@ func Pack(ctx context.Context, inp *Input, opt *Options) (*Output, error) {
 
 	if err != nil {
 		return out, fmt.Errorf("failed to write manifest file: %w", err)
+	}
+
+	// check if the user has supplied a pem input
+	if inp.PEM == "" {
+		if !opt.Sign {
+			return out, fmt.Errorf("pem input or sign option required")
+		}
+
+		npk, err := crx3.NewPrivateKey()
+
+		if err != nil {
+			return out, fmt.Errorf("failed to generate private key: %w", err)
+		}
+
+		inp.PEM = tpf
+
+		err = crx3.SavePrivateKey(inp.PEM, npk)
+
+		if err != nil {
+			return out, fmt.Errorf("failed to save private key: %w", err)
+		}
+	}
+
+	_, err = os.Stat(inp.PEM)
+
+	if err != nil {
+		err = writeBytesToFile(tpf, []byte(inp.PEM))
+
+		if err != nil {
+			return out, fmt.Errorf("failed to write temporary pem file: %w", err)
+		}
+
+		inp.PEM = tpf
 	}
 
 	// pack the extension using the specified packer
